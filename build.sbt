@@ -10,7 +10,7 @@ ThisBuild / testFrameworks += new TestFramework("munit.Framework")
 val catsV = "2.7.0"
 val catsEffectV = "3.2.9"
 val fs2V = "3.2.3"
-val http4sV = "0.23-771-7f4e051-SNAPSHOT"
+val http4sV = "0.23.18"
 val circeV = "0.14.1"
 val doobieV = "1.0.0-RC1"
 val munitCatsEffectV = "1.0.7"
@@ -44,6 +44,7 @@ lazy val core = project
 
       "co.fs2"                      %% "fs2-core"                   % fs2V,
       "co.fs2"                      %% "fs2-io"                     % fs2V,
+      "co.fs2"                      %% "fs2-scodec"                 % fs2V,
 
       "org.http4s"                  %% "http4s-dsl"                 % http4sV,
       "org.http4s"                  %% "http4s-ember-server"        % http4sV,
@@ -53,6 +54,10 @@ lazy val core = project
       "io.circe"                    %% "circe-core"                 % circeV,
       "io.circe"                    %% "circe-generic"              % circeV,
       "io.circe"                    %% "circe-parser"               % circeV,
+
+      if (scalaVersion.value.startsWith("3")){
+       "org.scodec"                  %% "scodec-core"                % "2.2.1"
+      }else "org.scodec"                  %% "scodec-core"                % "1.11.10",
 
       "org.tpolecat"                %% "doobie-core"                % doobieV,
       "org.tpolecat"                %% "doobie-h2"                  % doobieV,

@@ -12,6 +12,19 @@ object Main extends IOApp {
     def sayHello(request: HelloRequest): IO[HelloReply] = 
       IO.println(request) >>
       IO(HelloReply(request.name))
+
+    def sayHelloAlot(request: Hello.HelloRequest): fs2.Stream[cats.effect.IO,Hello.HelloReply] =
+      fs2.Stream.eval(IO.println(request)).drain ++
+      fs2.Stream(Hello.HelloReply(request.name))
+        .covary[IO]
+        .repeat
+        .take(5)
+
+    def sayHelloTiny(request: fs2.Stream[cats.effect.IO,Hello.HelloRequest]): cats.effect.IO[Hello.HelloReply] =
+      request.take(1).compile.to(List).map(_.headOption.fold(Hello.HelloReply("Unknown"))(req => Hello.HelloReply(req.name)))
+
+    def sayHelloToInfinity(request: fs2.Stream[cats.effect.IO,Hello.HelloRequest]): fs2.Stream[cats.effect.IO,Hello.HelloReply] =
+      request.map(r => Hello.HelloReply(r.name))
   }
 
   val routeFallback = HttpRoutes.of[IO]{

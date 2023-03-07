@@ -15,8 +15,41 @@ val managedChannelResource  =
     .forAddress("127.0.0.1", 8080)
     .usePlaintext()
     .resource[IO]
-    
-  def runProgram(stub: GreeterFs2Grpc[IO, Metadata]): IO[Unit] = stub.sayHello(HelloRequest("Sarah"), new Metadata()).flatMap(IO.println(_))
+
+  // val action = (stub: GreeterFs2Grpc[IO, Metadata]) => {
+  //   stub.sayHelloToInfinity(
+  //       fs2.Stream("Chris", "Sarah", "Arman", "Zach")
+  //         .map(HelloRequest(_)),
+  //       new Metadata()
+  //     )
+  //     .compile
+  //     .toList
+  // }
+
+  // val action = (stub: GreeterFs2Grpc[IO, Metadata]) => {
+  //   stub.sayHello(HelloRequest("Chris"), new Metadata())
+  // }
+
+  val action = (stub: GreeterFs2Grpc[IO, Metadata]) => {
+    stub.sayHelloTiny(
+        fs2.Stream("Chris", "Sarah", "Arman", "Zach")
+          .map(HelloRequest(_)),
+        new Metadata()
+      )
+  }
+
+  // val action = (stub: GreeterFs2Grpc[IO, Metadata]) => {
+  //   stub.sayHelloAlot(HelloRequest("Chris"), new Metadata())
+  //     .compile
+  //     .toList
+  // }
+
+  def runProgram(stub: GreeterFs2Grpc[IO, Metadata]): IO[Unit] =
+    action(stub).flatMap(a =>
+      IO.println("") >>
+      IO.println(a) >>
+      IO.println("")
+    )
 
 val runIt: IO[Unit] = managedChannelResource
   .flatMap{ ch => GreeterFs2Grpc.stubResource(ch)}
