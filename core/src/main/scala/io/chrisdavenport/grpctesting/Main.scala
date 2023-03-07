@@ -4,12 +4,13 @@ import cats.syntax.all._
 import cats.effect._
 import com.comcast.ip4s._
 import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.ember.client.EmberClientBuilder
 import Hello.{HelloReply, HelloRequest}
 import org.http4s._
 
-object Main extends IOApp {
+object ServerExample extends IOApp {
   val greeter = new Greeter[IO] {
-    def sayHello(request: HelloRequest): IO[HelloReply] = 
+    def sayHello(request: HelloRequest): IO[HelloReply] =
       IO.println(request) >>
       IO(HelloReply(request.name))
 
@@ -46,4 +47,21 @@ object Main extends IOApp {
 
   
 
+}
+
+object ClientExample extends IOApp {
+  import org.http4s.implicits._
+  def run(args: List[String]): IO[ExitCode] = {
+    EmberClientBuilder.default[IO]
+      .withHttp2
+      .build
+      .use{ iclient =>
+        val client = org.http4s.client.middleware.Logger(true, true, logAction = {s: String => IO.println(s)}.some)(iclient)
+        val greeter = Greeter.client(client, uri"http://localhost:9999")
+
+        greeter.sayHello(HelloRequest("Chris"))
+          .flatTap(IO.println)
+
+      }
+  }.as(ExitCode.Success)
 }

@@ -10,6 +10,7 @@ import scodec.bits.ByteVector
 import Hello.HelloRequest
 import org.http4s.headers.`Content-Type`
 import org.typelevel.ci._
+import org.http4s.ember.core.h2._
 
 /*
   rpc sayHello (HelloRequest) returns (HelloReply) {}
@@ -37,6 +38,8 @@ object Greeter {
             for {
               _ <- Sync[F].delay(println(s"Made it to sayHello route $ireq"))
               arr <- ireq.body.compile.to(Array)
+              trailers <- ireq.attributes.lookup(org.http4s.Message.Keys.TrailerHeaders[F]).sequence
+              _ = println(trailers)
               bv = ByteVector.view(arr)
               message <- LengthPrefixedMessage.codec.decodeValue(bv.bits).toEither.leftMap(err => new RuntimeException(err.messageWithContext)).liftTo[F]
               reqT <- Sync[F].delay(_root_.Hello.HelloRequest.validate(message.message.toArray))
@@ -161,7 +164,38 @@ object Greeter {
 
   def client[F[_]: Async](client: _root_.org.http4s.client.Client[F], baseUri: _root_.org.http4s.Uri): Greeter[F] = new Greeter[F]{
     def sayHello(request: _root_.Hello.HelloRequest): F[_root_.Hello.HelloReply] = {
-      ???
+      val encodedRequest = for {
+        outArrI <- Sync[F].delay(_root_.Hello.HelloRequest.toByteArray(request))
+        outArr <- LengthPrefixedMessage.codec.encode(
+          LengthPrefixedMessage(false, ByteVector.view(outArrI))
+        ).toEither
+          .leftMap(err => new RuntimeException(err.messageWithContext))
+          .liftTo[F]
+          .map(_.bytes)
+      } yield outArr
+      val req = _root_.org.http4s.Request[F](_root_.org.http4s.Method.POST, baseUri / "Greeter" / "sayHello" )
+
+      (
+        `Content-Type`.parse("application/grpc+proto").liftTo[F],
+        encodedRequest
+      ).tupled.flatMap{ case (contentType, encoded) =>
+        client.run(
+          _root_.org.http4s.Request[F](_root_.org.http4s.Method.POST, baseUri / "Greeter" / "sayHello" )
+            .withEntity(encoded)
+            .withContentType(contentType)
+            .withAttribute(H2Keys.Http2PriorKnowledge, ())
+
+        ).use{ resp =>
+
+          for {
+              arr <- resp.body.compile.to(Array)
+              bv = ByteVector.view(arr)
+              message <- LengthPrefixedMessage.codec.decodeValue(bv.bits).toEither.leftMap(err => new RuntimeException(err.messageWithContext)).liftTo[F]
+              reqT <- Sync[F].delay(_root_.Hello.HelloReply.validate(message.message.toArray))
+              req <- reqT.liftTo[F]
+          } yield req
+        }
+      }
     }
 
     def sayHelloAlot(request: Hello.HelloRequest): fs2.Stream[F,Hello.HelloReply] = ???
