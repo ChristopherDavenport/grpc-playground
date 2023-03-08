@@ -55,9 +55,7 @@ lazy val core = project
       "io.circe"                    %% "circe-generic"              % circeV,
       "io.circe"                    %% "circe-parser"               % circeV,
 
-      if (scalaVersion.value.startsWith("3")){
-       "org.scodec"                  %% "scodec-core"                % "2.2.1"
-      }else "org.scodec"                  %% "scodec-core"                % "1.11.10",
+      "io.chrisdavenport" %% "http4s-grpc" % "0.0-965ab0a-SNAPSHOT",
 
       "org.tpolecat"                %% "doobie-core"                % doobieV,
       "org.tpolecat"                %% "doobie-h2"                  % doobieV,

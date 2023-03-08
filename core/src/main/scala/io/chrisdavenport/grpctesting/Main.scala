@@ -10,21 +10,21 @@ import org.http4s._
 
 object ServerExample extends IOApp {
   val greeter = new Greeter[IO] {
-    def sayHello(request: HelloRequest): IO[HelloReply] =
+    def sayHello(request: HelloRequest, ctx: Headers): IO[HelloReply] =
       IO.println(request) >>
       IO(HelloReply(request.name))
 
-    def sayHelloAlot(request: Hello.HelloRequest): fs2.Stream[cats.effect.IO,Hello.HelloReply] =
+    def sayHelloAlot(request: Hello.HelloRequest, ctx: Headers): fs2.Stream[cats.effect.IO,Hello.HelloReply] =
       fs2.Stream.eval(IO.println(request)).drain ++
       fs2.Stream(Hello.HelloReply(request.name))
         .covary[IO]
         .repeat
         .take(5)
 
-    def sayHelloTiny(request: fs2.Stream[cats.effect.IO,Hello.HelloRequest]): cats.effect.IO[Hello.HelloReply] =
+    def sayHelloTiny(request: fs2.Stream[cats.effect.IO,Hello.HelloRequest], ctx: Headers): cats.effect.IO[Hello.HelloReply] =
       request.take(1).compile.to(List).map(_.headOption.fold(Hello.HelloReply("Unknown"))(req => Hello.HelloReply(req.name)))
 
-    def sayHelloToInfinity(request: fs2.Stream[cats.effect.IO,Hello.HelloRequest]): fs2.Stream[cats.effect.IO,Hello.HelloReply] =
+    def sayHelloToInfinity(request: fs2.Stream[cats.effect.IO,Hello.HelloRequest], ctx: Headers): fs2.Stream[cats.effect.IO,Hello.HelloReply] =
       request.map(r => Hello.HelloReply(r.name))
   }
 
@@ -59,7 +59,7 @@ object ClientExample extends IOApp {
         val client = org.http4s.client.middleware.Logger(true, true, logAction = {s: String => IO.println(s)}.some)(iclient)
         val greeter = Greeter.client(client, uri"http://localhost:9999")
 
-        greeter.sayHelloTiny(fs2.Stream(HelloRequest("Chris"), HelloRequest("Sarah")))
+        greeter.sayHelloTiny(fs2.Stream(HelloRequest("Chris"), HelloRequest("Sarah")), Headers())
           // .compile
           // .toList
           .flatTap(IO.println)
