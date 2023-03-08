@@ -173,7 +173,6 @@ object Greeter {
           .liftTo[F]
           .map(_.bytes)
       } yield outArr
-      val req = _root_.org.http4s.Request[F](_root_.org.http4s.Method.POST, baseUri / "Greeter" / "sayHello" )
 
       (
         `Content-Type`.parse("application/grpc+proto").liftTo[F],
@@ -198,9 +197,87 @@ object Greeter {
       }
     }
 
-    def sayHelloAlot(request: Hello.HelloRequest): fs2.Stream[F,Hello.HelloReply] = ???
-    def sayHelloTiny(request: fs2.Stream[F,Hello.HelloRequest]): F[Hello.HelloReply] = ???
-    def sayHelloToInfinity(request: fs2.Stream[F,Hello.HelloRequest]): fs2.Stream[F,Hello.HelloReply] = ???
+    def sayHelloAlot(request: Hello.HelloRequest): fs2.Stream[F,Hello.HelloReply] = {
+      val encodedRequest = for {
+        outArrI <- Sync[F].delay(_root_.Hello.HelloRequest.toByteArray(request))
+        outArr <- LengthPrefixedMessage.codec.encode(
+          LengthPrefixedMessage(false, ByteVector.view(outArrI))
+        ).toEither
+          .leftMap(err => new RuntimeException(err.messageWithContext))
+          .liftTo[F]
+          .map(_.bytes)
+      } yield outArr
+
+      fs2.Stream.eval(
+        (
+          `Content-Type`.parse("application/grpc+proto").liftTo[F],
+          encodedRequest
+        ).tupled
+      ).flatMap{ case (contentType, encoded) =>
+        fs2.Stream.resource(client.run(
+          _root_.org.http4s.Request[F](_root_.org.http4s.Method.POST, baseUri / "Greeter" / "sayHello" )
+            .withEntity(encoded)
+            .withContentType(contentType)
+            .withAttribute(H2Keys.Http2PriorKnowledge, ())
+
+        )).flatMap{ resp =>
+          resp.body
+            .through(fs2.interop.scodec.StreamDecoder.many(LengthPrefixedMessage.codec).toPipeByte)
+            .evalMap(lpm => Sync[F].delay(_root_.Hello.HelloReply.validate(lpm.message.toArray)))
+            .evalMap(_.liftTo[F])
+        }
+      }
+    }
+
+    def sayHelloTiny(request: fs2.Stream[F,Hello.HelloRequest]): F[Hello.HelloReply] = {
+      val reqStream = request
+        .map(reply => LengthPrefixedMessage(false, ByteVector.view(_root_.Hello.HelloRequest.toByteArray(reply))))
+        .through(fs2.interop.scodec.StreamEncoder.many(LengthPrefixedMessage.codec).toPipeByte)
+      (
+        `Content-Type`.parse("application/grpc+proto").liftTo[F],
+      
+      ).flatMap{ case contentType =>
+        client.run(
+          _root_.org.http4s.Request[F](_root_.org.http4s.Method.POST, baseUri / "Greeter" / "sayHello" )
+            .withBodyStream(reqStream)
+            .withContentType(contentType)
+            .withAttribute(H2Keys.Http2PriorKnowledge, ())
+
+        ).use{ resp =>
+
+          for {
+              arr <- resp.body.compile.to(Array)
+              bv = ByteVector.view(arr)
+              message <- LengthPrefixedMessage.codec.decodeValue(bv.bits).toEither.leftMap(err => new RuntimeException(err.messageWithContext)).liftTo[F]
+              reqT <- Sync[F].delay(_root_.Hello.HelloReply.validate(message.message.toArray))
+              req <- reqT.liftTo[F]
+          } yield req
+        }
+      }
+    }
+    def sayHelloToInfinity(request: fs2.Stream[F,Hello.HelloRequest]): fs2.Stream[F,Hello.HelloReply] = {
+      val reqStream = request
+        .map(reply => LengthPrefixedMessage(false, ByteVector.view(_root_.Hello.HelloRequest.toByteArray(reply))))
+        .through(fs2.interop.scodec.StreamEncoder.many(LengthPrefixedMessage.codec).toPipeByte)
+
+      fs2.Stream.eval(
+          `Content-Type`.parse("application/grpc+proto").liftTo[F],
+          
+      ).flatMap{ case contentType =>
+        fs2.Stream.resource(client.run(
+          _root_.org.http4s.Request[F](_root_.org.http4s.Method.POST, baseUri / "Greeter" / "sayHello" )
+            .withBodyStream(reqStream)
+            .withContentType(contentType)
+            .withAttribute(H2Keys.Http2PriorKnowledge, ())
+
+        )).flatMap{ resp =>
+          resp.body
+            .through(fs2.interop.scodec.StreamDecoder.many(LengthPrefixedMessage.codec).toPipeByte)
+            .evalMap(lpm => Sync[F].delay(_root_.Hello.HelloReply.validate(lpm.message.toArray)))
+            .evalMap(_.liftTo[F])
+        }
+      }
+    }
 
   }
 

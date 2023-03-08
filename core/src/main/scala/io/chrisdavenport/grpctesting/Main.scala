@@ -59,7 +59,9 @@ object ClientExample extends IOApp {
         val client = org.http4s.client.middleware.Logger(true, true, logAction = {s: String => IO.println(s)}.some)(iclient)
         val greeter = Greeter.client(client, uri"http://localhost:9999")
 
-        greeter.sayHello(HelloRequest("Chris"))
+        greeter.sayHelloTiny(fs2.Stream(HelloRequest("Chris"), HelloRequest("Sarah")))
+          // .compile
+          // .toList
           .flatTap(IO.println)
 
       }
