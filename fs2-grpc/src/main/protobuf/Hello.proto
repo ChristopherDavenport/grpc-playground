@@ -5,6 +5,9 @@ syntax = "proto3";
 service Greeter {
   // Sends a greeting
   rpc sayHello (HelloRequest) returns (HelloReply) {}
+  rpc sayHelloAlot (HelloRequest) returns (stream HelloReply) {}
+  rpc sayHelloTiny (stream HelloRequest) returns (HelloReply) {}
+  rpc sayHelloToInfinity (stream HelloRequest) returns (stream HelloReply) {}
 }
 
 // The request message containing the user's name.
