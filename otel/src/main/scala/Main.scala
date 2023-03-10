@@ -17,8 +17,9 @@ import scodec.bits.ByteVector
 
 object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] = EmberClientBuilder.default[IO].withHttp2.build.use{
-    client =>
-    val system = TraceService.fromClient(client, uri"http://localhost:5778")
+    iclient =>
+    val client = org.http4s.client.middleware.Logger(true, true, logAction = {(s: String) => IO.println(s)}.some)(iclient)
+    val system = TraceService.fromClient(client, uri"http://localhost:9411")
 
     system.export(
       ExportTraceServiceRequest(
