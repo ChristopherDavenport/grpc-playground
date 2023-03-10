@@ -17,6 +17,9 @@ import com.google.protobuf.ByteString
 import scodec.bits.ByteVector
 import io.opentelemetry.proto.common.v1.common.InstrumentationScope
 import com.comcast.ip4s.Port
+import io.opentelemetry.proto.common.v1.common.KeyValue
+import io.opentelemetry.proto.common.v1.common.AnyValue
+import java.time.Instant
 
 object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] = EmberClientBuilder.default[IO].withHttp2.build.use{
@@ -30,20 +33,28 @@ object Main extends IOApp {
       ExportTraceServiceRequest(
         Seq(
           ResourceSpans(
-            None, 
+            Some(
+              Resource(Seq(
+                KeyValue("service.name", Some(AnyValue(AnyValue.Value.StringValue("grpc-playground"))))
+              ))
+            ), 
             Seq(
               ScopeSpans(
-                InstrumentationScope("grpc-playground").some,
+                None,
                 spans = Seq(
                   Span(
                     traceId = {
-                      ByteString.copyFrom(ByteVector.fromHex("0x5b8aa5a2d2c872e8321cf37308d69df2").get.toArrayUnsafe)
+                      val traceId = scala.util.Random.nextBytes(16)
+                      println(s"TraceId: ${ByteVector(traceId).toHex}")
+                      ByteString.copyFrom(traceId)
                     },
                     spanId = {
-                      ByteString.copyFrom(ByteVector.fromHex("0x5fb397be34d26b51").get.toArrayUnsafe)
+                      val spanId = scala.util.Random.nextBytes(8)
+                      println(s"SpanId: ${ByteVector(spanId).toHex}")
+                      ByteString.copyFrom(spanId)
                     },
-                    startTimeUnixNano = System.nanoTime(),
-                    endTimeUnixNano = System.nanoTime(),
+                    startTimeUnixNano = Instant.now().getEpochSecond() * 1000000000,
+                    endTimeUnixNano =  (Instant.now().getEpochSecond() + 1)* 1000000000,
                     name = "Hello-Greetings"
                   )
                 )
