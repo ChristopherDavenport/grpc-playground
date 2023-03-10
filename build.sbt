@@ -20,23 +20,17 @@ val munitCatsEffectV = "1.0.7"
 lazy val `grpc-testing` = project.in(file("."))
   .disablePlugins(MimaPlugin)
   .enablePlugins(NoPublishPlugin)
-  .aggregate(core, fs2GRPC)
+  .aggregate(otel)
 
-lazy val core = project
+
+lazy val otel = project
   // .crossType(CrossType.Pure)
-  .in(file("core"))
+  .in(file("otel"))
   .enablePlugins(Http4sGrpcPlugin)
   .settings(
-    name := "grpc-testing",
+    name := "otel",
     Compile / PB.targets ++= Seq(
       // set grpc = false because http4s-grpc generates its own code
       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb"
     )
-  )
-
-lazy val fs2GRPC = project.in(file("fs2-grpc"))
-  .enablePlugins(Fs2Grpc)
-  .settings(
-    libraryDependencies += "io.grpc" % "grpc-netty-shaded" % scalapb.compiler.Version.grpcJavaVersion,
-    libraryDependencies +=       "ch.qos.logback" % "logback-classic" % "1.2.3",
   )
