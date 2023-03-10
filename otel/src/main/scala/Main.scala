@@ -12,15 +12,18 @@ import io.opentelemetry.proto.collector.trace.v1.trace_service.ExportTraceServic
 import io.opentelemetry.proto.trace.v1.trace.ResourceSpans
 import io.opentelemetry.proto.trace.v1.trace.ScopeSpans
 import io.opentelemetry.proto.trace.v1.trace.Span
+import io.opentelemetry.proto.resource.v1.resource.Resource
 import com.google.protobuf.ByteString
 import scodec.bits.ByteVector
+import io.opentelemetry.proto.common.v1.common.InstrumentationScope
+import com.comcast.ip4s.Port
 
 object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] = EmberClientBuilder.default[IO].withHttp2.build.use{
     iclient =>
     val client = org.http4s.client.middleware.Logger(true, true, logAction = {(s: String) => IO.println(s)}.some)(iclient)
-    val system = TraceService.fromClient(client, uri"http://localhost:9411")
-
+    
+    val system = TraceService.fromClient(client, uri"http://localhost:4317")
     system.export(
       ExportTraceServiceRequest(
         Seq(
@@ -28,6 +31,7 @@ object Main extends IOApp {
             None, 
             Seq(
               ScopeSpans(
+                InstrumentationScope("grpc-playground").some,
                 spans = Seq(
                   Span(
                     traceId = {
@@ -47,7 +51,7 @@ object Main extends IOApp {
         )
       ),
       Headers.empty
-    ) >>
+    ).flatTap(IO.println) >>
     IO.unit.as(ExitCode.Success)
   }
 }
