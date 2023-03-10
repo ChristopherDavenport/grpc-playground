@@ -16,19 +16,19 @@ val managedChannelResource  =
     .usePlaintext()
     .resource[IO]
 
-  // val action = (stub: GreeterFs2Grpc[IO, Metadata]) => {
-  //   stub.sayHelloToInfinity(
-  //       fs2.Stream("Chris", "Sarah", "Arman", "Zach")
-  //         .map(HelloRequest(_)),
-  //       new Metadata()
-  //     )
-  //     .compile
-  //     .toList
-  // }
-
   val action = (stub: GreeterFs2Grpc[IO, Metadata]) => {
-    stub.sayHello(HelloRequest("Chris"), new Metadata())
+    stub.sayHelloToInfinity(
+        fs2.Stream("Chris", "Sarah", "Arman", "Zach")
+          .map(HelloRequest(_)),
+        new Metadata()
+      )
+      .compile
+      .toList
   }
+
+  // val action = (stub: GreeterFs2Grpc[IO, Metadata]) => {
+  //   stub.sayHello(HelloRequest("Chris"), new Metadata())
+  // }
 
   // val action = (stub: GreeterFs2Grpc[IO, Metadata]) => {
   //   stub.sayHelloTiny(
@@ -91,7 +91,7 @@ object ServerTest extends IOApp{
 
 
   def runService(service: ServerServiceDefinition) = NettyServerBuilder
-    .forPort(9999)
+    .forPort(8080)
     .addService(service)
     .resource[IO]
     .evalMap(server => IO(server.start()))
