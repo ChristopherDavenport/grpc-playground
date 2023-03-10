@@ -6,6 +6,7 @@ ThisBuild / crossScalaVersions := Seq(Scala213)
 ThisBuild / scalaVersion := Scala213
 
 ThisBuild / testFrameworks += new TestFramework("munit.Framework")
+ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 val catsV = "2.7.0"
 val catsEffectV = "3.2.9"
