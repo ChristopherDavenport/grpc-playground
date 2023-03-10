@@ -23,8 +23,10 @@ object Main extends IOApp {
     iclient =>
     val client = org.http4s.client.middleware.Logger(true, true, logAction = {(s: String) => IO.println(s)}.some)(iclient)
     
-    val system = TraceService.fromClient(client, uri"http://localhost:4317")
-    system.export(
+    // val system = TraceService.fromClient(client, uri"http://localhost:4317")
+
+    _root_.org.http4s.grpc.ClientGrpc.unaryToUnary(_root_.org.http4s.grpc.codecs.ScalaPb.codecForGenerated(_root_.io.opentelemetry.proto.collector.trace.v1.trace_service.ExportTraceServiceRequest), _root_.org.http4s.grpc.codecs.ScalaPb.codecForGenerated(_root_.io.opentelemetry.proto.collector.trace.v1.trace_service.ExportTraceServiceResponse), "opentelemetry.proto.collector.trace.v1.TraceService", "Export")(client, uri"http://localhost:4317")(
+    // system.export(
       ExportTraceServiceRequest(
         Seq(
           ResourceSpans(
