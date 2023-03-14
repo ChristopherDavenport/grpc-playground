@@ -21,15 +21,40 @@ val munitCatsEffectV = "1.0.7"
 lazy val `grpc-testing` = project.in(file("."))
   .disablePlugins(MimaPlugin)
   .enablePlugins(NoPublishPlugin)
-  .aggregate(otel)
+  .aggregate(google)
 
 
-lazy val otel = project
+// lazy val scalapbProj = project
+//   // .crossType(CrossType.Pure)
+//   .in(file("scalapb"))
+//   .enablePlugins(Http4sGrpcPlugin)
+//   .settings(
+//     name := "http4s-grpc-google-apis-scalapb",
+//     Compile / PB.targets ++= Seq(
+//       // set grpc = false because http4s-grpc generates its own code
+//       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb"
+//     )
+//   )
+
+// lazy val http4sGrpc = project
+//   // .crossType(CrossType.Pure)
+//   .in(file("http4s-grpc"))
+//   .dependsOn(scalapbProj)
+//   .enablePlugins(Http4sGrpcPlugin)
+//   .settings(
+//     name := "http4s-grpc-google-apis",
+//     Compile / PB.targets ++= Seq(
+//       // set grpc = false because http4s-grpc generates its own code
+//       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb"
+//     )
+//   )
+
+lazy val google = project
   // .crossType(CrossType.Pure)
-  .in(file("otel"))
+  .in(file("google"))
   .enablePlugins(Http4sGrpcPlugin)
   .settings(
-    name := "otel",
+    name := "google",
     Compile / PB.targets ++= Seq(
       // set grpc = false because http4s-grpc generates its own code
       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb"
